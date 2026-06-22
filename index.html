@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcheoFun — Discover the Ancient World</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Age Picker Overlay -->
+<div id="ageSelection" class="age-overlay" role="dialog" aria-modal="true" aria-labelledby="age-title">
+  <div class="age-box">
+    <span class="age-logo-emoji">🏺</span>
+    <h2 class="age-title" id="age-title">Who's exploring today?</h2>
+    <p class="age-subtitle">Pick your explorer style to begin!</p>
+    <div class="age-buttons">
+      <button class="age-btn age-btn-kid" onclick="selectAge('kid')">
+        <span class="age-icon">🧒</span>
+        <span class="age-name">I'm a Kid</span>
+        <span class="age-desc">Ages 6–10<br>Fun &amp; easy!</span>
+      </button>
+      <button class="age-btn age-btn-adult" onclick="selectAge('adult')">
+        <span class="age-icon">🧑</span>
+        <span class="age-name">I'm a Teen</span>
+        <span class="age-desc">Ages 11–17<br>Full challenge!</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Achievement Toast -->
+<div class="achievement-notification" id="achievementNotification" aria-live="polite">
+  <span class="achievement-icon" id="achievementIcon">🏆</span>
+  <div>
+    <div class="achievement-title" id="achievementTitle">Achievement!</div>
+    <div class="achievement-desc" id="achievementDesc"></div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a href="#" class="nav-brand" onclick="showPage('home');return false;">
+    <span class="brand-glyph">⛏️</span>
+    <span class="brand-text">ArcheoFun</span>
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="#" class="nav-link active" data-page="home" onclick="showPage('home');return false;"><span class="nav-icon">🏠</span><span class="nav-text" data-i18n="nav.home">Home</span></a>
+    <a href="#" class="nav-link" data-page="explore" onclick="showPage('explore');return false;"><span class="nav-icon">🗺️</span><span class="nav-text" data-i18n="nav.explore">Explore</span></a>
+    <a href="#" class="nav-link" data-page="history" onclick="showPage('history');return false;"><span class="nav-icon">📜</span><span class="nav-text" data-i18n="nav.history">History</span></a>
+    <a href="#" class="nav-link" data-page="civilizations" onclick="showPage('civilizations');return false;"><span class="nav-icon">🏛️</span><span class="nav-text" data-i18n="nav.civilizations">Civilizations</span></a>
+    <a href="#" class="nav-link" data-page="games" onclick="showPage('games');return false;"><span class="nav-icon">🎮</span><span class="nav-text" data-i18n="nav.games">Games</span></a>
+  </div>
+  <div class="nav-controls">
+    <button class="age-switch-btn" id="navAgeChip" onclick="showAgeSelection()" aria-label="Switch mode" title="Switch Kid / Teen mode">👤</button>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+    <div class="lang-menu">
+      <button class="lang-toggle" id="langToggle" aria-expanded="false" aria-haspopup="listbox">🌐 <span id="currentLangLabel">EN</span></button>
+      <div class="lang-dropdown" id="langDropdown">
+        <button class="lang-choice" data-lang="en"><span class="lang-flag">🇬🇧</span> English</button>
+        <button class="lang-choice" data-lang="fr"><span class="lang-flag">🇫🇷</span> Français</button>
+        <button class="lang-choice" data-lang="ar"><span class="lang-flag">🇲🇦</span> العربية</button>
+      </div>
+    </div>
+    <button class="nav-menu-toggle" id="navMenuToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Ambient layer -->
+<div class="ambient-layer" aria-hidden="true">
+  <div class="faded-map-bg"></div>
+  <div class="compass-mark compass-mark-1"></div>
+  <div class="compass-mark compass-mark-2"></div>
+  <div class="ruins-silhouette ruins-left"></div>
+  <div class="ruins-silhouette ruins-right"></div>
+</div>
+
+<!-- ══════════════════ HOME PAGE ══════════════════ -->
+<div id="home" class="page active">
+  <section class="hero">
+    <div class="hero-background">
+      <div class="animated-bg">
+        <div class="bg-layer layer-1"></div>
+        <div class="bg-layer layer-2"></div>
+        <div class="bg-layer layer-3"></div>
+      </div>
+      <div class="hero-image-bg"></div>
+      <div class="hero-overlay"></div>
+      <div class="hero-pattern"></div>
+    </div>
+    <div class="hero-content">
+      <h1 class="hero-title">
+        <span class="title-line" data-i18n="home.title1">Uncover</span>
+        <span class="title-line" data-i18n="home.title2">Ancient Worlds</span>
+      </h1>
+      <p class="hero-subtitle" data-i18n="home.subtitle">Explore real archaeological sites, learn about ancient civilizations, and become a Master Archaeologist.</p>
+      <button class="hero-cta" onclick="showPage('games');selectGame('adventure')">
+        <span data-i18n="home.cta">Start Adventure</span> <span class="cta-arrow">→</span>
+      </button>
+    </div>
+    <div class="hero-scroll" aria-hidden="true">
+      <span class="scroll-arrow">↓</span>
+      <span>scroll</span>
+    </div>
+  </section>
+
+  <div class="next-section container">
+    <!-- ADVENTURE — full-width hero on home page -->
+    <div class="home-adventure-banner" onclick="showPage('games');selectGame('adventure')" tabindex="0" role="button" aria-label="Play ArcheoVenture">
+      <div class="home-adv-bg" aria-hidden="true"></div>
+      <div class="home-adv-content">
+        <div class="home-adv-chips">
+          <span class="home-adv-chip">⭐ XP &amp; Streaks</span>
+          <span class="home-adv-chip">🏅 5 Badges</span>
+          <span class="home-adv-chip">🎓 Certificate</span>
+          <span class="home-adv-chip hot">★ Main Game</span>
+        </div>
+        <div class="home-adv-icon">⛏️</div>
+        <h2 class="home-adv-title">ArcheoVenture</h2>
+        <p class="home-adv-desc">The full archaeologist experience — dig for real artifacts, master ancient tools, identify civilizations, and solve a real mystery. Earn your <strong>Master Archaeologist Certificate</strong>!</p>
+        <div class="home-adv-levels">
+          <div class="home-adv-pip"><span>🔍</span><small>Explorer</small></div>
+          <span class="home-adv-arrow">→</span>
+          <div class="home-adv-pip"><span>🛠️</span><small>Apprentice</small></div>
+          <span class="home-adv-arrow">→</span>
+          <div class="home-adv-pip"><span>🏺</span><small>Expert</small></div>
+          <span class="home-adv-arrow">→</span>
+          <div class="home-adv-pip"><span>🌍</span><small>Scholar</small></div>
+          <span class="home-adv-arrow">→</span>
+          <div class="home-adv-pip"><span>🕵️</span><small>Master</small></div>
+        </div>
+        <div class="home-adv-cta">Start Adventure ⛏️ →</div>
+      </div>
+    </div>
+
+    <!-- Secondary features -->
+    <div class="feature-grid feature-grid-secondary">
+      <div class="feature-card" onclick="showPage('explore')" tabindex="0" role="button">
+        <span class="feature-icon">🗺️</span>
+        <h3 data-i18n="home.feat1">Explore Sites</h3>
+        <p data-i18n="home.feat1desc">Discover real archaeological sites across the ancient world.</p>
+        <div class="feature-hover">→ Explore now</div>
+      </div>
+      <div class="feature-card" onclick="showPage('history')" tabindex="0" role="button">
+        <span class="feature-icon">📜</span>
+        <h3 data-i18n="home.feat2">Learn History</h3>
+        <p data-i18n="home.feat2desc">Understand how archaeology works and why it matters.</p>
+        <div class="feature-hover">→ Read more</div>
+      </div>
+      <div class="feature-card" onclick="showPage('civilizations')" tabindex="0" role="button">
+        <span class="feature-icon">🏛️</span>
+        <h3 data-i18n="home.feat3">Civilizations</h3>
+        <p data-i18n="home.feat3desc">Journey through Egypt, Rome, Morocco, the Maya and beyond.</p>
+        <div class="feature-hover">→ Discover</div>
+      </div>
+    </div>
+    <div class="why-section">
+      <h2 data-i18n="home.why">Why Archaeology?</h2>
+      <p data-i18n="home.whydesc">Archaeology connects us to our shared human story. Every artifact, every ruin, every ancient coin is a message from the past — waiting to be read.</p>
+      <div class="stats-grid">
+        <div class="stat-item"><span class="stat-emoji">🏺</span><div class="stat-number">5000+</div><div class="stat-label" data-i18n="home.stat1">Years of History</div></div>
+        <div class="stat-item"><span class="stat-emoji">🌍</span><div class="stat-number">12</div><div class="stat-label" data-i18n="home.stat2">Sites to Explore</div></div>
+        <div class="stat-item"><span class="stat-emoji">🎮</span><div class="stat-number">5</div><div class="stat-label" data-i18n="home.stat3">Game Levels</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ EXPLORE PAGE ══════════════════ -->
+<div id="explore" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title" data-i18n="nav.explore">Explore Sites</h1>
+      <p class="page-subtitle" data-i18n="explore.subtitle">Tap any site to learn more about it</p>
+    </div>
+    <div class="search-filter-bar">
+      <div class="search-input-wrap">
+        <input type="text" class="site-search" id="siteSearch" placeholder="Search sites…" autocomplete="off" aria-label="Search archaeological sites">
+      </div>
+      <select class="country-filter" id="countryFilter" aria-label="Filter by country">
+        <option value="">All Countries</option>
+        <option value="Morocco">🇲🇦 Morocco (20)</option>
+        <option value="Italy">🇮🇹 Italy</option>
+        <option value="Peru">🇵🇪 Peru</option>
+        <option value="Egypt">🇪🇬 Egypt</option>
+        <option value="Jordan">🇯🇴 Jordan</option>
+        <option value="Cambodia">🇰🇭 Cambodia</option>
+      </select>
+    </div>
+    <div class="explore-progress">
+      <span class="explore-progress-label">🗺️ Sites Visited</span>
+      <div class="explore-progress-bar"><div class="explore-progress-fill" id="exploreProgressFill" style="width:0%"></div></div>
+      <span class="explore-progress-count" id="exploreProgressCount">0/12</span>
+    </div>
+    <div class="sites-grid" id="sitesGrid"></div>
+  </div>
+</div>
+
+<!-- Site detail modal -->
+<div class="modal" id="siteModal" role="dialog" aria-modal="true" aria-labelledby="modalSiteName">
+  <div class="modal-overlay" onclick="closeModal()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
+    <div class="modal-image-container"><img id="siteImage" src="" alt="" loading="lazy"></div>
+    <div class="modal-body">
+      <div class="modal-title-row">
+        <h2 id="modalSiteName"></h2>
+        <button class="modal-share-btn" id="modalShareBtn" onclick="copySiteName()">📋 Copy</button>
+      </div>
+      <div class="modal-tags" id="modalTags"></div>
+      <div class="modal-facts" id="modalFacts"></div>
+      <div class="modal-detail-text" id="modalDetailText"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ HISTORY PAGE ══════════════════ -->
+<div id="history" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title" data-i18n="nav.history">How Archaeology Works</h1>
+      <p class="page-subtitle">From the first dig to the museum display</p>
+    </div>
+    <div class="history-content" id="historyContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ CIVILIZATIONS PAGE ══════════════════ -->
+<div id="civilizations" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title" data-i18n="nav.civilizations">Ancient Civilizations</h1>
+      <p class="page-subtitle">The great cultures that shaped our world</p>
+    </div>
+    <div class="civilizations-list" id="civList"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ GAMES PAGE ══════════════════ -->
+<div id="games" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title" data-i18n="nav.games">Games &amp; Challenges</h1>
+      <p class="page-subtitle">Test your knowledge, earn badges!</p>
+    </div>
+
+    <!-- XP + streak bar -->
+    <div class="game-stats">
+      <div class="game-stat"><span class="stat-icon">⭐</span><span class="stat-value" id="xpValue">0</span><span class="stat-label">XP</span></div>
+      <div class="game-stat"><span class="stat-icon">🔥</span><span class="stat-value" id="streakValue">0</span><span class="stat-label">Streak</span></div>
+      <div class="game-stat"><span class="stat-icon">🏅</span><span class="stat-value" id="badgesValue">0</span><span class="stat-label">Badges</span></div>
+    </div>
+
+    <!-- Game picker (shown first) -->
+    <div id="gamesList" class="games-list">
+      <div class="games-atmosphere" aria-hidden="true">
+        <span class="atmo-glyph" style="--delay:0s">🏺</span>
+        <span class="atmo-glyph" style="--delay:1s">⛏️</span>
+        <span class="atmo-glyph" style="--delay:2s">🔍</span>
+        <span class="atmo-glyph" style="--delay:3s">🌍</span>
+        <span class="atmo-glyph" style="--delay:4s">🏆</span>
+      </div>
+      <!-- ADVENTURE HERO CARD -->
+      <div class="adventure-hero-card" onclick="selectGame('adventure')" tabindex="0" role="button">
+        <div class="adv-hero-bg" aria-hidden="true"></div>
+        <div class="adv-hero-content">
+          <div class="adv-hero-badges">
+            <span class="adv-badge-chip">⭐ XP System</span>
+            <span class="adv-badge-chip">🏅 Badges</span>
+            <span class="adv-badge-chip">🎓 Certificate</span>
+          </div>
+          <div class="adv-hero-icon">⛏️</div>
+          <h2 class="adv-hero-title">ArcheoVenture</h2>
+          <p class="adv-hero-desc">The full archaeologist experience — dig for artifacts, identify tools, match civilizations, solve a mystery and earn your <strong>Master Archaeologist Certificate</strong>!</p>
+          <div class="adv-hero-levels">
+            <div class="adv-level-pip"><span class="adv-pip-icon">🔍</span><span class="adv-pip-label">Explorer</span></div>
+            <div class="adv-pip-arrow">→</div>
+            <div class="adv-level-pip"><span class="adv-pip-icon">🛠️</span><span class="adv-pip-label">Apprentice</span></div>
+            <div class="adv-pip-arrow">→</div>
+            <div class="adv-level-pip"><span class="adv-pip-icon">🏺</span><span class="adv-pip-label">Expert</span></div>
+            <div class="adv-pip-arrow">→</div>
+            <div class="adv-level-pip"><span class="adv-pip-icon">🌍</span><span class="adv-pip-label">Scholar</span></div>
+            <div class="adv-pip-arrow">→</div>
+            <div class="adv-level-pip"><span class="adv-pip-icon">🕵️</span><span class="adv-pip-label">Master</span></div>
+          </div>
+          <div class="adv-hero-btn">Start Adventure ⛏️</div>
+        </div>
+      </div>
+
+      <!-- MINI GAMES -->
+      <p class="mini-games-label">More games to explore</p>
+      <div class="games-grid mini-games-grid">
+        <div class="game-card" onclick="selectGame('quiz')" tabindex="0" role="button">
+          <div class="game-card-inner">
+            <span class="game-icon">🧠</span>
+            <h3 data-i18n="games.quiz">Artifact Quiz</h3>
+            <p data-i18n="games.quizDesc">Beat the timer, score big!</p>
+            <div class="game-play-hint">▶ Play</div>
+          </div>
+        </div>
+        <div class="game-card" onclick="selectGame('memory')" tabindex="0" role="button">
+          <div class="game-card-inner">
+            <span class="game-icon">🃏</span>
+            <h3 data-i18n="games.memory">Memory Match</h3>
+            <p data-i18n="games.memoryDesc">Match artifact pairs!</p>
+            <div class="game-play-hint">▶ Play</div>
+          </div>
+        </div>
+        <div class="game-card" onclick="selectGame('siteQuiz')" tabindex="0" role="button">
+          <div class="game-card-inner">
+            <span class="game-icon">🗺️</span>
+            <h3 data-i18n="games.siteQuiz">Site Challenge</h3>
+            <p data-i18n="games.siteQuizDesc">Name that site!</p>
+            <div class="game-play-hint">▶ Play</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 5-LEVEL ADVENTURE (hidden until selected) ── -->
+    <div id="adventureGame" class="hidden">
+      <button class="btn-back" onclick="backToGames()"><span class="btn-icon">←</span> Games</button>
+
+      <!-- Pip mascot strip -->
+      <div id="pip-row" class="pip-row">
+        <span id="pip-avatar" class="pip-avatar">🦜</span>
+        <div id="pip-bubble" class="pip-bubble pop">
+          <p id="pip-text">Hi! I'm Pip! Enter your name and let's start digging! 🏺</p>
+        </div>
+      </div>
+      <!-- XP + streak -->
+      <div class="adventure-topbar">
+        <div class="adv-stat"><span>⭐</span> <span id="adv-xp">0</span>/<span id="adv-xp-max">500</span> XP</div>
+        <div id="adv-xp-bar-wrap"><div id="adv-xp-bar"></div></div>
+        <div class="adv-stat">🔥 <span id="adv-streak">0</span></div>
+      </div>
+      <div id="adv-badges-row"></div>
+
+      <!-- Screens -->
+      <div id="adv-screen-start" class="adv-screen active">
+        <div class="adv-hero-card">
+          <span class="adv-glyph">🏺</span>
+          <p class="adv-eyebrow">ArcheoVenture</p>
+          <h2>Become an Archaeologist</h2>
+          <p>Dig, discover, solve ancient mysteries. Earn your Master Certificate!</p>
+        </div>
+        <div class="adv-fact-ticker"><span id="adv-fact-icon">💡</span><p id="adv-fact-text">The word "archaeology" comes from Greek words meaning "study of ancient things."</p></div>
+        <div class="adv-card">
+          <label class="adv-label" for="adv-player-name">Your explorer name</label>
+          <input class="adv-input" type="text" id="adv-player-name" placeholder="Enter your name…" maxlength="20" autocomplete="given-name">
+          <button id="adv-start-btn" class="adv-btn-primary">Start Adventure 🚀</button>
+        </div>
+      </div>
+
+      <div id="adv-screen-level1" class="adv-screen">
+        <div class="adv-level-badge">🔍 Level 1 · Explorer</div>
+        <div class="adv-card">
+          <h2>The Dig Begins</h2>
+          <p>Learn the basics, then uncover 5 hidden artifacts!</p>
+          <div id="adv-facts-l1"></div>
+          <div id="adv-dig-section" class="hidden">
+            <div class="adv-dig-header">
+              <h3>🏖️ Dig Site</h3>
+              <div class="adv-found-chip">Found: <span id="adv-found">0</span>/5</div>
+            </div>
+            <p style="font-size:.82rem;margin-bottom:10px;color:var(--text-muted)">Tap once to crack, tap again to reveal!</p>
+            <div id="adv-dig-grid" class="adv-dig-grid"></div>
+            <p id="adv-level1-msg" class="adv-level-msg"></p>
+            <button id="adv-l1-continue" class="adv-btn-primary" disabled>Continue to Level 2 →</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="adv-screen-level2" class="adv-screen">
+        <div class="adv-level-badge">🛠️ Level 2 · Excavation Apprentice</div>
+        <div class="adv-card">
+          <h2>Tools of the Trade</h2>
+          <p>Study each tool, then beat the clock in the quiz!</p>
+          <div id="adv-tools-l2"></div>
+          <div id="adv-quiz-section-l2" class="hidden">
+            <h3 style="color:var(--gold);margin-bottom:12px">🧠 Tool Quiz</h3>
+            <div id="adv-quiz-l2"></div>
+            <button id="adv-l2-continue" class="adv-btn-primary hidden">Continue to Level 3 →</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="adv-screen-level3" class="adv-screen">
+        <div class="adv-level-badge">🏺 Level 3 · Artifact Expert</div>
+        <div class="adv-card">
+          <h2>Identify the Artifacts</h2>
+          <p>Answer fast — speed bonuses are on the line!</p>
+          <div id="adv-quiz-l3"></div>
+          <button id="adv-l3-continue" class="adv-btn-primary hidden">Continue to Level 4 →</button>
+        </div>
+      </div>
+
+      <div id="adv-screen-level4" class="adv-screen">
+        <div class="adv-level-badge">🌍 Level 4 · Civilization Scholar</div>
+        <div class="adv-card">
+          <h2>Match the Civilization</h2>
+          <p>Drag each artifact to where it came from.</p>
+          <div id="adv-quiz-l4"></div>
+          <button id="adv-l4-continue" class="adv-btn-primary hidden">Continue to Level 5 →</button>
+        </div>
+      </div>
+
+      <div id="adv-screen-level5" class="adv-screen">
+        <div class="adv-level-badge">🕵️ Level 5 · Master Archaeologist</div>
+        <div class="adv-card">
+          <h2>The Mystery Site</h2>
+          <div class="adv-mystery-box">
+            <h3>🔎 The Evidence</h3>
+            <p>A coin with <strong>Roman numerals</strong>, a tile with <strong>geometric mosaic patterns</strong>, and pottery with <strong>Arabic script</strong>. What do they reveal?</p>
+          </div>
+          <div id="adv-quiz-l5"></div>
+          <button id="adv-l5-continue" class="adv-btn-primary hidden">Finish the Adventure 🏁</button>
+        </div>
+      </div>
+
+      <div id="adv-screen-win" class="adv-screen">
+        <div class="adv-card adv-win-card">
+          <span class="adv-trophy">🏆</span>
+          <h2>You did it!</h2>
+          <p id="adv-win-msg">Amazing work!</p>
+          <div class="adv-xp-ring"><span class="adv-xp-ring-num" id="adv-final-xp">0</span><span class="adv-xp-ring-lbl">XP</span></div>
+          <div id="adv-win-badges"></div>
+          <button id="adv-cert-btn" class="adv-btn-primary">Get Certificate 🎓</button>
+        </div>
+      </div>
+
+      <div id="adv-screen-certificate" class="adv-screen">
+        <div class="adv-cert-card">
+          <div class="adv-cert-inner">
+            <h2>🏆 Certificate of Achievement</h2>
+            <p>This certifies that</p>
+            <p class="adv-cert-name" id="adv-cert-name">Explorer</p>
+            <p>has completed all challenges and is a</p>
+            <p class="adv-cert-title">Master Archaeologist</p>
+            <p class="adv-cert-date" id="adv-cert-date"></p>
+            <div id="adv-cert-badges"></div>
+          </div>
+        </div>
+        <button id="adv-print-btn" class="adv-btn-secondary">🖨️ Print</button>
+        <button id="adv-restart-btn" class="adv-btn-primary">🔄 Play Again</button>
+      </div>
+    </div><!-- /adventureGame -->
+
+    <!-- Quiz game -->
+    <div id="quizGame" class="hidden">
+      <button class="btn-back" onclick="backToGames()"><span class="btn-icon">←</span> Games</button>
+      <div class="page-header"><h2 class="page-title">🧠 Artifact Quiz</h2></div>
+      <div class="level-selector" id="quizLevelSelector">
+        <h2 data-i18n="quiz.chooseLevel">Choose Difficulty</h2>
+        <div class="level-buttons">
+          <button class="level-btn" onclick="startQuiz('easy')"><span class="level-icon">🌱</span><div class="level-name">Easy</div><div class="level-desc">10 questions</div></button>
+          <button class="level-btn" onclick="startQuiz('medium')"><span class="level-icon">⚡</span><div class="level-name">Medium</div><div class="level-desc">Timed + bonuses</div></button>
+          <button class="level-btn" onclick="startQuiz('hard')"><span class="level-icon">🔥</span><div class="level-name">Hard</div><div class="level-desc">Expert mode</div></button>
+        </div>
+      </div>
+      <div id="quizQuestions" class="quiz-container hidden">
+        <button class="btn-back" onclick="backToLevels()"><span class="btn-icon">←</span> Levels</button>
+        <div class="quiz-card">
+          <div class="quiz-progress"><div class="progress-bar"><div class="progress-fill" id="quizProgressFill"></div></div><div class="timer-bar"><div class="timer-fill" id="quizTimerFill"></div></div><div class="progress-text"><span id="questionCounter"></span><span id="quizScoreDisplay"></span></div></div>
+          <div class="quiz-hint-area">
+            <div class="quiz-timer-wrap">⏱️ <span class="quiz-timer" id="quizTimer">20</span>s</div>
+            <button class="hint-btn" id="hintBtn" onclick="useHint()">💡 Hint <span class="hint-count" id="hintCount">3</span></button>
+          </div>
+          <div class="hint-box" id="hintBox"><span class="hint-label">HINT</span><span id="hintText"></span></div>
+          <div class="current-level-badge" id="currentLevelBadge"></div>
+          <h2 id="questionText"></h2>
+          <div class="answers-container" id="answersContainer"></div>
+          <div class="feedback" id="feedbackText"></div>
+          <div class="quiz-controls">
+            <span class="score" id="scoreDisplay"></span>
+            <button class="btn-primary" id="nextBtn" onclick="nextQuestion()" style="display:none">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory game -->
+    <div id="memoryGame" class="hidden">
+      <button class="btn-back" onclick="backToGames()"><span class="btn-icon">←</span> Games</button>
+      <div class="memory-container">
+        <div class="memory-header">
+          <h2 class="page-title">🃏 Memory Match</h2>
+          <div class="memory-stats">
+            <div class="memory-stat"><span class="stat-label">Moves</span><span class="stat-value" id="memoryMoves">0</span></div>
+            <div class="memory-stat"><span class="stat-label">Pairs</span><span class="stat-value" id="memoryPairs">0/8</span></div>
+            <div class="memory-stat"><span class="stat-label">Time</span><span class="stat-value" id="memoryTimer">0s</span></div>
+          </div>
+        </div>
+        <div class="memory-game" id="memoryGrid"></div>
+      </div>
+    </div>
+
+    <!-- Site quiz game -->
+    <div id="siteQuizGame" class="hidden">
+      <button class="btn-back" onclick="backToGames()"><span class="btn-icon">←</span> Games</button>
+      <div class="site-quiz-container">
+        <div class="page-header"><h2 class="page-title">🗺️ Site Challenge</h2></div>
+        <div class="site-quiz-card">
+          <div class="site-image-container"><img id="siteQuizImage" src="" alt="" loading="lazy"></div>
+          <div class="quiz-progress"><div class="progress-bar"><div class="progress-fill" id="siteQuizProgress"></div></div><div class="progress-text"><span id="siteQuizCounter"></span><span id="siteQuizScore"></span></div></div>
+          <h2 id="siteQuizQuestion"></h2>
+          <div class="answers-container" id="siteQuizAnswers"></div>
+          <div class="feedback" id="siteFeedback"></div>
+          <div class="quiz-controls"><span class="score"></span><button class="btn-primary" id="siteNextBtn" onclick="nextSiteQuestion()" style="display:none">Next →</button></div>
+        </div>
+        <div class="site-quiz-hint" data-i18n="games.siteHint">Look at the image carefully — architecture, landscape and style are all clues!</div>
+      </div>
+    </div>
+
+    <!-- Victory overlay -->
+    <div class="victory-overlay hidden" id="victoryOverlay">
+      <div class="victory-card">
+        <span class="victory-confetti">🎊</span>
+        <span class="victory-icon" id="victoryIcon">🏆</span>
+        <h2 id="victoryTitle">You Won!</h2>
+        <div class="victory-stats" id="victoryStats"></div>
+        <div class="victory-controls">
+          <button class="btn-secondary" onclick="backToGames()">← Games</button>
+          <button class="btn-primary" onclick="restartCurrentGame()">🔄 Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discovery modal for dig -->
+    <div id="adv-discovery-modal" class="modal hidden" role="dialog" aria-modal="true" style="display:none">
+      <div class="modal-overlay" onclick="closeAdvDiscovery()"></div>
+      <div class="modal-content" style="max-width:380px">
+        <div class="modal-body" style="text-align:center;padding:2rem">
+          <span id="adv-disc-emoji" style="font-size:4rem;display:block;margin-bottom:1rem"></span>
+          <h2 id="adv-disc-name" style="margin-bottom:.5rem"></h2>
+          <p id="adv-disc-fact"></p>
+          <button class="btn-primary" onclick="closeAdvDiscovery()" style="margin-top:1.5rem">Awesome! ✨</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /games page -->
+
+<!-- AncientAI -->
+<button id="ab-trigger" aria-label="Open AncientAI" aria-expanded="false">🤖</button>
+<div id="ab-panel" role="dialog" aria-modal="false" aria-label="AncientAI">
+  <div id="ab-header">
+    <span id="ab-avatar">🤖</span>
+    <div><div id="ab-title">AncientAI</div><div id="ab-subtitle">Your archaeology guide</div></div>
+    <button id="ab-close" aria-label="Close AncientAI">✕</button>
+  </div>
+  <div id="ab-messages"></div>
+  <div id="ab-chips"></div>
+  <div id="ab-input-area">
+    <textarea id="ab-input" placeholder="Ask about archaeology…" rows="1" aria-label="Message AncientAI"></textarea>
+    <button id="ab-send" aria-label="Send message">↑</button>
+  </div>
+</div>
+
+<!-- Did You Know toast -->
+<div class="did-you-know" id="didYouKnow" onclick="this.classList.remove('show')">
+  <span class="did-you-know-label">💡 Did You Know?</span>
+  <span class="did-you-know-text" id="dykText"></span>
+  <span class="did-you-know-hint">tap to dismiss</span>
+</div>
+
+<!-- Scroll to top -->
+<button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">↑</button>
+
+<!-- Confetti -->
+<div id="confetti-container" aria-hidden="true"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
