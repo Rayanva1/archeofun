@@ -1123,19 +1123,25 @@ async function wikiSummary(title) {
   return d;
 }
 
-// Smart fetch: search then get summary
+// Smart fetch: try direct title, fall back to search
 async function wikiFetch(query) {
   try {
-    // Try direct title first
-    let data = await wikiSummary(query);
-    if (!data || data.type === 'disambiguation') {
-      // Fall back to search
+    const res = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`
+    );
+    if (!res.ok) {
+      // Fall back to search if direct lookup fails
       const title = await wikiSearch(query);
       if (!title) return null;
-      data = await wikiSummary(title);
+      const res2 = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
+      );
+      if (!res2.ok) return null;
+      return await res2.json();
     }
-    return data;
-  } catch(e) {
+    return await res.json();
+  } catch(err) {
+    console.error(err);
     return null;
   }
 }
