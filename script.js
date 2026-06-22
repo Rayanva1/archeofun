@@ -1189,21 +1189,23 @@ async function abSend(text) {
       ? text
       : text + ' ancient history archaeology';
 
-    const wiki = await wikiFetch(query);
+    const extract = await askAncientAI(query);
 
     abRemoveTyping();
 
-    if (wiki && wiki.extract) {
-      const extract = wikiFormat(wiki.extract, 400);
-      const emoji = getArcheoEmoji(wiki.title);
-      const link = `https://en.wikipedia.org/wiki/${encodeURIComponent(wiki.title)}`;
+    // Also get full wiki data for the link
+    const wiki = await wikiFetch(query);
+
+    if (extract && extract !== "I couldn't find information about that archaeological topic.") {
+      const formatted = wikiFormat(extract, 400);
+      const emoji = getArcheoEmoji(wiki?.title || query);
+      const link = wiki ? `https://en.wikipedia.org/wiki/${encodeURIComponent(wiki.title)}` : null;
       abAddMessage(
-        `${emoji} <strong>${wiki.title}</strong><br><br>${extract}<br><br>` +
-        `<a href="${link}" target="_blank" rel="noopener" style="font-size:.75rem;color:var(--camel);opacity:.8">📖 Read more on Wikipedia</a>`,
+        `${emoji} <strong>${wiki?.title || query}</strong><br><br>${formatted}` +
+        (link ? `<br><br><a href="${link}" target="_blank" rel="noopener" style="font-size:.75rem;color:var(--camel);opacity:.8">📖 Read more on Wikipedia</a>` : ''),
         'bot'
       );
     } else {
-      // Local fallback answers
       abAddMessage(getLocalAnswer(text), 'bot');
     }
   } catch(e) {
@@ -1217,6 +1219,22 @@ async function abSend(text) {
     const btn = document.createElement('button'); btn.className = 'ab-chip'; btn.textContent = c;
     btn.addEventListener('click', () => abSend(c)); chips.appendChild(btn);
   });
+}
+
+// Test Wikipedia connection on load
+(async () => {
+  const result = await wikiFetch("Volubilis");
+  if (result) console.log("✅ Wikipedia connected:", result.extract?.slice(0, 80) + "...");
+  else console.warn("⚠️ Wikipedia fetch failed");
+})();
+
+// Core AI function — ask anything, get Wikipedia answer
+async function askAncientAI(question) {
+  const data = await wikiFetch(question);
+  if (!data || !data.extract) {
+    return "I couldn't find information about that archaeological topic.";
+  }
+  return data.extract;
 }
 
 // Pick a relevant emoji for the Wikipedia topic
