@@ -1,0 +1,19 @@
+{
+  "name": "archeofun",
+  "version": "1.0.0",
+  "description": "ArcheoFun — Discover the Ancient World. An educational archaeology web app for kids and teenagers.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": ["archaeology", "education", "kids", "history", "game"],
+  "author": "ArcheoFun",
+  "license": "MIT"
+}
