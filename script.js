@@ -279,38 +279,56 @@ function updateExploreProgress() {
   document.getElementById('exploreProgressFill').style.width = pct + '%';
   document.getElementById('exploreProgressCount').textContent = visitedSites.size + '/' + allSites.length;
 }
-function openSiteModal(site) {
+async function openSiteModal(site) {
   visitedSites.add(site.name); updateExploreProgress();
-  // Handle image
+
+  // Show modal immediately with local data while Wikipedia loads
   const imgEl = document.getElementById('siteImage');
   const imgWrap = imgEl.parentElement;
   if (site.image) {
-    imgEl.src = site.image;
-    imgEl.alt = site.name;
-    imgEl.style.display = '';
-    imgWrap.style.display = '';
+    imgEl.src = site.image; imgEl.alt = site.name;
+    imgEl.style.display = ''; imgWrap.style.display = '';
     imgEl.onerror = () => { imgWrap.style.display = 'none'; };
-  } else {
-    imgWrap.style.display = 'none';
-  }
+  } else { imgWrap.style.display = 'none'; }
+
   document.getElementById('modalSiteName').textContent = site.name;
-  // Tags from site.tags or empty
-  const tags = site.tags || [];
-  document.getElementById('modalTags').innerHTML = tags.map(t=>`<span class="site-tag">${t}</span>`).join('') ||
-    `<span class="site-tag">📍 ${site.country}</span>`;
-  // Facts row
-  const factsHtml = [
-    site.country ? `<span>📍 ${site.country}</span>` : '',
-    site.type    ? `<span>🏛️ ${site.type}</span>` : '',
-    site.period  ? `<span>📅 ${site.period}</span>` : '',
+  document.getElementById('modalTags').innerHTML = (site.tags||[]).map(t=>`<span class="site-tag">${t}</span>`).join('');
+  document.getElementById('modalFacts').innerHTML = [
+    site.country ? `<span>📍 ${site.country}</span>`:'',
+    site.type    ? `<span>🏛️ ${site.type}</span>`:'',
+    site.period  ? `<span>📅 ${site.period}</span>`:'',
   ].filter(Boolean).join('');
-  document.getElementById('modalFacts').innerHTML = factsHtml;
-  // Detail text — use site.detail (from uploaded data) or fallback to site.desc + site.fact
-  const detailText = site.detail || (site.desc + (site.fact ? '\n\n💡 ' + site.fact : ''));
-  document.getElementById('modalDetailText').innerHTML = detailText
-    .split('\n\n').map(p => `<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+
+  // Show local desc while loading
+  document.getElementById('modalDetailText').innerHTML =
+    `<p>${site.desc}</p><p style="color:var(--text-muted);font-size:.82rem;font-style:italic">🌐 Loading more from Wikipedia…</p>`;
   document.getElementById('siteModal').classList.add('active');
   addXP(5);
+
+  // Fetch Wikipedia in background
+  try {
+    const wiki = await wikiFetch(site.name + ' archaeological site');
+    if (wiki && wiki.extract) {
+      const extract = wikiFormat(wiki.extract, 800);
+      // Use Wikipedia thumbnail if we don't have a local image
+      if (!site.image && wiki.thumbnail?.source) {
+        imgEl.src = wiki.thumbnail.source; imgEl.alt = site.name;
+        imgEl.style.display = ''; imgWrap.style.display = '';
+      }
+      document.getElementById('modalDetailText').innerHTML =
+        `<p>${extract}</p>` +
+        (site.fact ? `<p>💡 <em>${site.fact}</em></p>` : '') +
+        `<p style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem">Source: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(wiki.title)}" target="_blank" rel="noopener" style="color:var(--camel)">Wikipedia — ${wiki.title}</a></p>`;
+    } else {
+      // Fallback to our local detail text
+      const local = site.detail || (site.desc + (site.fact ? '\n\n💡 ' + site.fact : ''));
+      document.getElementById('modalDetailText').innerHTML = local
+        .split('\n\n').map(p => `<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+    }
+  } catch(e) {
+    const local = site.detail || site.desc;
+    document.getElementById('modalDetailText').innerHTML = `<p>${local}</p>`;
+  }
 }
 function closeModal() { document.getElementById('siteModal').classList.remove('active'); }
 function copySiteName() {
@@ -1083,7 +1101,58 @@ document.getElementById('adv-restart-btn').addEventListener('click',advReset);
 /* ══════════════════════════════════════════════
    ARCHEOBOT
 ══════════════════════════════════════════════ */
-const AB_CHIPS = ["What is archaeology?","Tell me about Morocco","How old is Volubilis?","What's the oldest artifact?","Fun fact!"];
+/* ══════════════════════════════════════════════
+   WIKIPEDIA API — free, no key needed
+══════════════════════════════════════════════ */
+
+// Search Wikipedia and return top result title
+async function wikiSearch(query) {
+  const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=3&format=json&origin=*`;
+  const r = await fetch(url);
+  const d = await r.json();
+  // d[1] = titles array, return first hit
+  return d[1]?.[0] || null;
+}
+
+// Get page summary from Wikipedia REST API
+async function wikiSummary(title) {
+  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+  const r = await fetch(url);
+  if (!r.ok) return null;
+  const d = await r.json();
+  return d;
+}
+
+// Smart fetch: search then get summary
+async function wikiFetch(query) {
+  try {
+    // Try direct title first
+    let data = await wikiSummary(query);
+    if (!data || data.type === 'disambiguation') {
+      // Fall back to search
+      const title = await wikiSearch(query);
+      if (!title) return null;
+      data = await wikiSummary(title);
+    }
+    return data;
+  } catch(e) {
+    return null;
+  }
+}
+
+// Format Wikipedia extract into clean readable text
+function wikiFormat(extract, maxLen) {
+  if (!extract) return null;
+  // Strip HTML tags
+  const clean = extract.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (maxLen && clean.length > maxLen) {
+    const cut = clean.lastIndexOf(' ', maxLen);
+    return clean.substring(0, cut > 0 ? cut : maxLen) + '…';
+  }
+  return clean;
+}
+
+const AB_CHIPS = ["What is archaeology?","Tell me about Morocco","Volubilis ruins","Ancient Egypt pyramids","Maya civilization","Petra Jordan","What is stratigraphy?"];
 function abAddMessage(text, role) {
   const msgs = document.getElementById('ab-messages');
   const div = document.createElement('div'); div.className = `ab-msg ab-msg-${role}`;
@@ -1099,39 +1168,81 @@ function abShowTyping() {
 function abRemoveTyping() { document.getElementById('ab-typing')?.remove(); }
 async function abSend(text) {
   if (!text.trim()) return;
-  abAddMessage(text,'user');
-  document.getElementById('ab-input').value='';
-  document.getElementById('ab-send').disabled=true;
-  document.getElementById('ab-chips').innerHTML='';
+  abAddMessage(text, 'user');
+  document.getElementById('ab-input').value = '';
+  document.getElementById('ab-send').disabled = true;
+  document.getElementById('ab-chips').innerHTML = '';
   abShowTyping();
+
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',max_tokens:300,
-        system:'You are AncientAI, a friendly archaeology guide for the ArcheoFun educational website. Answer questions about archaeology, ancient civilizations, and archaeological sites in 2-3 short sentences. Focus on Morocco, Egypt, Greece, Rome, and Maya. Be enthusiastic and educational. End with an interesting fact or emoji.',
-        messages:[{role:'user',content:text}]
-      })
-    });
-    const d = await r.json();
+    // Build smart search query for archaeology context
+    const query = text.toLowerCase().includes('archaeo') ||
+                  text.toLowerCase().includes('ancient') ||
+                  text.toLowerCase().includes('dig') ||
+                  text.toLowerCase().includes('artifact')
+      ? text
+      : text + ' ancient history archaeology';
+
+    const wiki = await wikiFetch(query);
+
     abRemoveTyping();
-    abAddMessage(d.content?.[0]?.text||'Great question! Archaeology is all about uncovering the past. 🏺','bot');
+
+    if (wiki && wiki.extract) {
+      const extract = wikiFormat(wiki.extract, 400);
+      const emoji = getArcheoEmoji(wiki.title);
+      const link = `https://en.wikipedia.org/wiki/${encodeURIComponent(wiki.title)}`;
+      abAddMessage(
+        `${emoji} <strong>${wiki.title}</strong><br><br>${extract}<br><br>` +
+        `<a href="${link}" target="_blank" rel="noopener" style="font-size:.75rem;color:var(--camel);opacity:.8">📖 Read more on Wikipedia</a>`,
+        'bot'
+      );
+    } else {
+      // Local fallback answers
+      abAddMessage(getLocalAnswer(text), 'bot');
+    }
   } catch(e) {
     abRemoveTyping();
-    const fallbacks = {
-      "morocco":"Morocco has over 3,000 years of layered history — from Phoenicians to Romans to the Merinids! Sites like Volubilis and Chellah are UNESCO-listed treasures. 🏛️",
-      "egypt":"Ancient Egypt flourished for over 3,000 years! They built the pyramids as royal tombs and invented one of the first writing systems — hieroglyphics. 🔺",
-      "default":"Archaeology is the study of human history through physical remains! Every artifact, from a broken pot to an ancient coin, tells a story about the people who made it. 🏺"
-    };
-    const key = text.toLowerCase().includes('morocco')?'morocco':text.toLowerCase().includes('egypt')?'egypt':'default';
-    abAddMessage(fallbacks[key],'bot');
+    abAddMessage(getLocalAnswer(text), 'bot');
   }
-  document.getElementById('ab-send').disabled=false;
-  const chips=document.getElementById('ab-chips'); chips.innerHTML='';
-  AB_CHIPS.slice(0,3).forEach(c=>{
-    const btn=document.createElement('button');btn.className='ab-chip';btn.textContent=c;
-    btn.addEventListener('click',()=>abSend(c)); chips.appendChild(btn);
+
+  document.getElementById('ab-send').disabled = false;
+  const chips = document.getElementById('ab-chips'); chips.innerHTML = '';
+  AB_CHIPS.slice(0, 4).forEach(c => {
+    const btn = document.createElement('button'); btn.className = 'ab-chip'; btn.textContent = c;
+    btn.addEventListener('click', () => abSend(c)); chips.appendChild(btn);
   });
+}
+
+// Pick a relevant emoji for the Wikipedia topic
+function getArcheoEmoji(title) {
+  const t = title.toLowerCase();
+  if (t.includes('egypt') || t.includes('pyramid')) return '🔺';
+  if (t.includes('morocco') || t.includes('volubilis') || t.includes('roman')) return '🏛️';
+  if (t.includes('maya') || t.includes('inca') || t.includes('aztec')) return '🌽';
+  if (t.includes('greece') || t.includes('greek') || t.includes('athen')) return '🏺';
+  if (t.includes('petra') || t.includes('jordan')) return '🌹';
+  if (t.includes('china') || t.includes('terracotta')) return '🗿';
+  if (t.includes('archeolog') || t.includes('excavat')) return '⛏️';
+  if (t.includes('artifact') || t.includes('pottery')) return '🏺';
+  return '🌍';
+}
+
+// Local fallback answers when Wikipedia can't help
+function getLocalAnswer(text) {
+  const t = text.toLowerCase();
+  if (t.includes('morocco') || t.includes('volubilis') || t.includes('chellah'))
+    return '🏛️ Morocco has over 3,000 years of layered history — Phoenicians, Romans, Berbers, and Islamic dynasties all left their mark! Sites like Volubilis and Chellah are UNESCO-listed treasures.';
+  if (t.includes('egypt') || t.includes('pyramid'))
+    return '🔺 Ancient Egypt flourished for over 3,000 years! The Great Pyramid was the world\'s tallest structure for 3,800 years. They invented hieroglyphics — one of the first writing systems ever!';
+  if (t.includes('maya'))
+    return '🌽 The Maya developed advanced mathematics, a 365-day calendar, and a complex writing system. Their pyramids align perfectly with astronomical events!';
+  if (t.includes('greece') || t.includes('greek'))
+    return '🏺 Ancient Greece gave us democracy, philosophy, the Olympic Games, and theatre. The Parthenon has stood for over 2,400 years despite wars and earthquakes!';
+  if (t.includes('archaeolog') || t.includes('dig') || t.includes('excavat'))
+    return '⛏️ Archaeology is the study of human history through physical remains! Archaeologists carefully dig layer by layer — the deeper they go, the older the objects they find.';
+  if (t.includes('artifact') || t.includes('pottery') || t.includes('coin'))
+    return '🏺 Artifacts are objects made or used by humans in the past. Even a tiny broken piece of pottery — called a "sherd" — can reveal what people ate, how they traded, and when they lived!';
+  return '🌍 Great question! Archaeology connects us to our shared human story. Every artifact, ruin, and ancient site is a message from the past waiting to be uncovered. Try asking about a specific site or civilization!';
 }
 document.getElementById('ab-trigger').addEventListener('click',()=>{
   const panel=document.getElementById('ab-panel'); const open=panel.classList.toggle('ab-visible');
